@@ -26,10 +26,14 @@ This repository features a robust, real-time autonomous navigation system design
 
 # Project Structure
 ├── config.py             # Pre-configured lane parameters, BEV warp anchors, and resolutions
+
 ├── main1.py              # Main ROS 2 executable node housing the control loop & IMU slip logic
+
 ├── vision_processor.py   # Computer vision engine (BEV warp, LAB mask, Polynomial RANSAC)
+
 └── robot_control.py      # Skid-steer Kinematics translator computing individual track velocities
 
+# code
 ```
 cd ~/linetrancing
 python3 main1.py

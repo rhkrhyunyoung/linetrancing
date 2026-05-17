@@ -1,55 +1,36 @@
-# linetrancing
+# Autonomous Line-Tracking Defense Robot
+High-Performance Curve Tracking & IMU Slip-Compensated Navigation System based on ROS 2 & OpenCV
 
-# 🛡️ Autonomous Defense Robot: Lane Tracking & Skid-Steer Control
+This repository features a robust, real-time autonomous navigation system designed for the Defense Robot Competition. The system integrates Adaptive Thresholding, Polynomial Dual RANSAC, and IMU Sensor Fusion to master steep curves and challenging 3D banked tracks under erratic lighting and debris-heavy conditions.
 
-This repository features a robust, real-time autonomous navigation system designed for the Defense Robot Competition. The system utilizes Adaptive Thresholding, Dual RANSAC, and Bird's Eye View (BEV) to achieve stable lane tracking on complex tracks, even under challenging lighting and debris conditions.
+# Tech Stack & Environment
+- OS: Ubuntu 22.04 LTS
+- Framework: ROS 2 (Humble)
+- Language: Python 3
+- Libraries: OpenCV, Scikit-learn, NumPy
+- Hardware: Intel RealSense D435 (RGB-D), IMU Sensor, Tracked/Skid-Steer Robot Platform
 
-# 🚀 Key Algorithms & Logic
+# Key Modules & Architecture
 1. Perception & Preprocessing
-
-    Bird’s Eye View (BEV) & ROI:
-
-   - Eliminates perspective distortion to calculate real-world distances.
-
-   - Region of Interest (ROI) is applied to focus on the immediate path and reduce computational overhead.
-
-    Adaptive Thresholding (Local Binarization):
-
-   - Instead of a global threshold, it calculates the mean brightness of N×N local neighborhoods.
-
-   - The Advantage: It maintains high precision regardless of shadows (dark green) or direct sunlight (bright green) on the mint-colored track.
-
-      Canny Edge Detection:
-
-   - Extracts sharp boundaries where the mint track meets the grey floor, providing a clean set of points for the estimation model.
-
+- Bird’s Eye View (BEV) & Adaptive ROI
+- LAB Color Space & Adaptive Thresholding
+- Noise Filtering (Morphology & Gaussian Blur)
 2. Estimation & Path Planning
-
-    Dual RANSAC (Random Sample Consensus):
-
-   - Estimates the left and right lane boundaries mathematically.
-
-   - Robustness: Effectively ignores "outliers" like sand, debris, or visual noise. Even if parts of the lane are temporarily obscured, RANSAC predicts the most probable straight or curved model.
-
-    Frame Smoothing (2:8 Alpha Blending):
-
-   - Combines the previous frame’s lane equation ( 80% ) with the current frame’s result ( 20% ).
-
-   - The Advantage: Eliminates line jitter and ensures smooth navigation, making the control input significantly more stable.
-
+- Polynomial Dual RANSAC
+- Data Sampling & Real-Time Optimization
+- Frame Smoothing (Alpha Blending)
 3. Motion Control & Dynamics
+- Look-Ahead Distance Target Tracking
+- Skid Steering Logic & cmd_vel Publisher
+- IMU-Based Real-Time Slip Compensation
 
-    Skid Steering Logic:
+# Project Structure
+├── config.py             # Pre-configured lane parameters, BEV warp anchors, and resolutions
+├── main1.py              # Main ROS 2 executable node housing the control loop & IMU slip logic
+├── vision_processor.py   # Computer vision engine (BEV warp, LAB mask, Polynomial RANSAC)
+└── robot_control.py      # Skid-steer Kinematics translator computing individual track velocities
 
-   - Calculates the Center Error and Angular Deviation from the derived center-line.
-
-   - Translates steering intent into differential speeds for the left and right tracks rather than traditional front-wheel steering.
-
-    IMU-based Slip Compensation:
-
-   - Real-time feedback from the IMU (Inertial Measurement Unit) monitors the actual yaw rate.
-
-   - Compares the "intended rotation" vs. "actual rotation" to compensate for track slip, ensuring the robot reaches the exact target angle.
-
-
-
+```
+cd ~/linetrancing
+python3 main1.py
+```

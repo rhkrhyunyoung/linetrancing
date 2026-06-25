@@ -4,6 +4,7 @@ import pyrealsense2 as rs
 from vision_processor import VisionProcessor
 from robot_control import RobotController
 import config
+import time
 
 # ROS 2 라이브러리 및 메시지 추가
 import rclpy
@@ -24,7 +25,7 @@ def main():
     # 1. ROS 2 초기화 (사용자님 코드 그대로 유지)
     rclpy.init()
     node = rclpy.create_node('lane_follower')
-    cmd_pub = node.create_publisher(Twist, '/cmd_vel', 10)
+    cmd_pub = node.create_publisher(Twist, '/cmd_vel_nav', 10)
     
     # [추가] IMU 구독자 생성
     imu_sub = node.create_subscription(Imu, '/imu/data', imu_callback, 10)
@@ -41,23 +42,21 @@ def main():
     # Smoothing 변수
     prev_left_x = None
     prev_right_x = None
+    last_track_seen_time = time.time()
     
     print("RealSense & ROS 2 연결 성공! 슬립 보정 주행을 시작합니다...")
 
     try:
         while rclpy.ok():
-            # 3. 프레임 획득
             frames = pipeline.wait_for_frames()
             color_frame = frames.get_color_frame()
             if not color_frame:
                 continue
             frame = np.asanyarray(color_frame.get_data())
             
-            # 4. 영상 처리 (이미 vision_processor에서 Canny Edge가 적용됨!)
             bev = vision.get_bev(frame)
             binary = vision.get_binary_track(frame)
             
-            # 5. 좌우 라인 개별 인식
             left_line, right_line = vision.fit_dual_ransac(binary)
             track_width_px = 350
             display_bev = bev.copy()
@@ -87,6 +86,8 @@ def main():
                 # 곡선 그리기
                 pts_r = np.int32([np.column_stack([smoothed_right, y_pts])])
                 cv2.polylines(display_bev, pts_r, False, (255, 0, 0), 2)
+                
+            twist = Twist()
 
             # 8. 중앙선 계산 및 [모터 제어 / ROS 2 발행]
             if smoothed_left is not None and smoothed_right is not None:
@@ -97,10 +98,8 @@ def main():
                 target_x = smoothed_center[0]
                 error = target_x - (config.IMAGE_WIDTH / 2)
                 
-                # 모터 속도 계산 (Skid Steering)
                 l_speed, r_speed = controller.calculate_skid_steering(error)
                 
-                # [ROS 2 cmd_vel 발행 및 슬립 보정]
                 twist = Twist()
                 twist.linear.x = float((l_speed + r_speed) / 200.0) 
                 
@@ -113,9 +112,19 @@ def main():
                 twist.angular.z = target_angular_z + slip_correction
                 # -------------------------------
                 
-                cmd_pub.publish(twist)
+            else:
+                time_since_lost = time.time() - last_track_seen_time
+                
+                if time_since_lost < 3.0:
+                    # 3초 이내: 직진 (속도는 0.3으로 고정, 필요시 조절)
+                    twist.linear.x = 0.3 
+                    twist.angular.z = 0.0
+                    cv2.putText(display_bev, f"Status: Lost (Straight {3.0-time_since_lost:.1f}s)", (10, 120), 1, 1.2, (0, 165, 255), 2)
+                
+            cmd_pub.publish(twist)
 
                 # 화면에 정보 표시 (IMU 값도 추가)
+            if smoothed_left is not None:
                 cv2.putText(display_bev, f"Error: {error:.1f}", (10, 30), 1, 1.2, (0, 255, 0), 2)
                 cv2.putText(display_bev, f"Target Z: {target_angular_z:.2f}", (10, 60), 1, 1.2, (255, 255, 255), 2)
                 cv2.putText(display_bev, f"Real Z(IMU): {current_yaw_rate:.2f}", (10, 90), 1, 1.2, (255, 255, 0), 2)
@@ -128,7 +137,6 @@ def main():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
             
-            # ROS 2 이벤트 처리
             rclpy.spin_once(node, timeout_sec=0)
 
     finally:

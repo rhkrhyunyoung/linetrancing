@@ -1,28 +1,35 @@
-# Autonomous Line-Tracking Defense Robot
-High-Performance Curve Tracking & IMU Slip-Compensated Navigation System based on ROS 2 & OpenCV
-
-This repository features a robust, real-time autonomous navigation system designed for the Defense Robot Competition. The system integrates Adaptive Thresholding, Polynomial Dual RANSAC, and IMU Sensor Fusion to master steep curves and challenging 3D banked tracks under erratic lighting and debris-heavy conditions.
+# Robust Line-Tracing with Curvature Perception & Slip Compensation
+Advanced Autonomous Driving System based on ROS 2 & RealSense
+This project implements a high-performance line-tracing algorithm that overcomes the limitations of traditional point-to-point tracking. By leveraging Polynomial Curve Fitting and IMU-based slip compensation, it ensures stable high-speed cornering even on complex, high-curvature tracks.
 
 # Tech Stack & Environment
-- OS: Ubuntu 22.04 LTS
-- Framework: ROS 2 (Humble)
-- Language: Python 3
-- Libraries: OpenCV, Scikit-learn, NumPy
-- Hardware: Intel RealSense D435 (RGB-D), IMU Sensor, Tracked/Skid-Steer Robot Platform
+- Framework: ROS 2 (Humble/Foxy)
+- Language: Python 3.10+
+- Vision: OpenCV, Intel RealSense SDK (pyrealsense2)
+- Math: NumPy (for Polynomial Regression & Matrix operations)
+- Hardware: Intel RealSense D435, Skid-Steer Mobile Robot, IMU Sensor
 
 # Key Modules & Architecture
-1. Perception & Preprocessing
-- Bird’s Eye View (BEV) & Adaptive ROI
-- LAB Color Space & Adaptive Thresholding
-- Noise Filtering (Morphology & Gaussian Blur)
-2. Estimation & Path Planning
-- Polynomial Dual RANSAC
-- Data Sampling & Real-Time Optimization
-- Frame Smoothing (Alpha Blending)
-3. Motion Control & Dynamics
-- Look-Ahead Distance Target Tracking
-- Skid Steering Logic & cmd_vel Publisher
-- IMU-Based Real-Time Slip Compensation
+1. High-Order Polynomial Path Fitting
+Unlike conventional line-tracers that connect discrete points with straight lines, this system uses Polynomial Fitting to model the track as a continuous mathematical function.
+-Benefit: Provides a smooth trajectory even when the line is partially obscured or highly curved.
+-Robustness: Effectively filters out visual noise and maintains a stable "center-line" prediction.
+
+2. Target Tracking via Look-Ahead Distance
+Inspired by the Pure Pursuit algorithm, the system calculates a dynamic target point based on a defined Look-Ahead Distance.
+-Predictive Control: Instead of reacting to the immediate error under the robot, it looks ahead to anticipate upcoming curves.
+-Stability: This approach significantly reduces oscillations during high-speed transitions between straights and curves.
+
+3. Skid-Steering Logic & geometry_msgs/Twist Publisher
+Designed for skid-steer mobile platforms, the controller translates path-following logic into precise motion commands.
+-ROS 2 Integration: Publishes real-time velocity commands to the /cmd_vel topic.
+-Kinematics: Optimized steering-to-velocity mapping to ensure smooth rotation and forward momentum balance.
+
+4. Real-time Slip Compensation using IMU Data
+To bridge the gap between simulation and reality, an IMU-based feedback loop is integrated.
+-Slip Detection: Compares the commanded angular velocity with the actual yaw rate from the IMU.
+-Active Compensation: Automatically adjusts the wheel power to counteract drifting or mechanical slip on low-friction surfaces, ensuring the robot stays on its intended trajectory.
+
 
 # Project Structure
 ├── config.py             # Pre-configured lane parameters, BEV warp anchors, and resolutions
@@ -33,8 +40,19 @@ This repository features a robust, real-time autonomous navigation system design
 
 └── robot_control.py      # Skid-steer Kinematics translator computing individual track velocities
 
-# code
+# Getting Started
+Installation
 ```
 cd ~/linetrancing
+pip3 install numpy opencv-python pyrealsense2
 python3 main1.py
 ```
+<img width="1290" height="1047" alt="스크린샷 2026-06-17 20-40-41" src="https://github.com/user-attachments/assets/5f3cc4c1-04f1-4d99-96db-28c2f3a340ba" />
+
+# Control Logic Overview
+1. Perception: Capture RGB-D frames -> Thresholding -> Lane pixel extraction.
+
+2. Modeling: Fit y=ax2+bx+c to the lane pixels.
+3. Targeting: Find the (x,y) coordinate at the Look-Ahead distance.
+4. Correction: Calculate steering angle -> Apply IMU Slip Compensation -> Publish to cmd_vel.
+

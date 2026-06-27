@@ -1,4 +1,4 @@
-# Robust Line-Tracing with Curvature Perception & Slip Compensation
+# Robot Line-Tracing with Curvature Perception & Slip Compensation
 Advanced Autonomous Driving System based on ROS 2 & RealSense
 This project implements a high-performance line-tracing algorithm that overcomes the limitations of traditional point-to-point tracking. By leveraging Polynomial Curve Fitting and IMU-based slip compensation, it ensures stable high-speed cornering even on complex, high-curvature tracks.
 

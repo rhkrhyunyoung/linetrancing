@@ -47,7 +47,16 @@ cd ~/linetrancing
 pip3 install numpy opencv-python pyrealsense2
 python3 main1.py
 ```
-<img width="1290" height="1047" alt="스크린샷 2026-06-17 20-40-41" src="https://github.com/user-attachments/assets/5f3cc4c1-04f1-4d99-96db-28c2f3a340ba" />
+
+# graph TD
+    A[Intel RealSense D435] -->|RGB Frame| B(OpenCV Image Processing)
+    B -->|Binary/Filtered| C(2nd Order Polynomial Fitting)
+    C -->|Curve Equation| D(Look-Ahead Target Calculation)
+    D -->|Target Error| E(Skid-Steering Controller)
+    F[IMU Sensor] -->|Real-time Yaw Rate| G(Slip Compensation Logic)
+    G --> E
+    E -->|Twist Msg| H[cmd_vel Publisher]
+    H --> I[Mobile Robot Platform]
 
 # Control Logic Overview
 1. Perception: Capture RGB-D frames -> Thresholding -> Lane pixel extraction.
@@ -56,3 +65,7 @@ python3 main1.py
 3. Targeting: Find the (x,y) coordinate at the Look-Ahead distance.
 4. Correction: Calculate steering angle -> Apply IMU Slip Compensation -> Publish to cmd_vel.
 
+# 📐 Mathematical Approach
+To achieve smooth cornering, the system fits a 2nd-degree polynomial:
+$$f(x) = ax^2 + bx + c$$
+The **Look-Ahead distance ($L_d$)** is then used to find the target steering point, significantly reducing oscillations compared to pure error-based control.

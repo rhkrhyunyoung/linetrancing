@@ -65,7 +65,7 @@ python3 main1.py
 3. Targeting: Find the (x,y) coordinate at the Look-Ahead distance.
 4. Correction: Calculate steering angle -> Apply IMU Slip Compensation -> Publish to cmd_vel.
 
-# 📐 Mathematical Approach
+# Mathematical Approach
 To achieve smooth cornering, the system fits a 2nd-degree polynomial:
 $$f(x) = ax^2 + bx + c$$
 The **Look-Ahead distance ($L_d$)** is then used to find the target steering point, significantly reducing oscillations compared to pure error-based control.
